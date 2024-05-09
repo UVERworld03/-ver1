@@ -1,1 +1,84 @@
+from robottools import RobotTools
+import openai
+import azure.cognitiveservices.speech as speechsdk
+import time
 
+print("準備中")
+# ロボット１の設定
+rt1 = RobotTools("192.168.50.154", 22222)
+# ロボット２の設定
+rt2 = RobotTools("192.168.50.94", 22222)
+
+# OpenAIのAPIのセットアップ
+openai.api_key = "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"
+model_engine = "gpt-4-turbo"
+
+# MS Azureの音声認識器を作成
+speech_key, service_region = "ac607035b94b40c0bdcdadcfb3b28d5f", "japanwest"
+speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
+speech_config.speech_recognition_language="ja-JP"
+speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config)
+
+
+
+prompt1 = [
+    {'role': 'system', 'content': 'このロボットは京セラ株式会社に置いています。'},
+    {'role': 'system', 'content': '返事は短めに二文までにしてください。'}]
+
+prompt2 = [
+    {'role': 'system', 'content': 'このロボットは京セラ株式会社に置いています。'},
+    {'role': 'system', 'content': '返事は短めに二文までにしてください。'}]
+
+print("準備完了。発話を始めてください。")
+while True:
+    # ロボット１の音声認識開始
+    result1 = speech_recognizer.recognize_once()
+
+    # ロボット１の音声認識結果（ユーザの発話）の処理
+    if result1.reason == speechsdk.ResultReason.RecognizedSpeech:
+        print("ロボット１の発話:", result1.text)
+        # プロンプトにユーザの発話を追加
+        prompt1.append({'role': 'user', 'content': result1.text})
+        # ユーザの発話をChatGPTに送信、生成された応答文を取得
+        response1 = openai.chat.completions.create(
+            model=model_engine,
+            messages=prompt1
+        )
+        message1 = response1.choices[0].message.content
+        # ロボット１に返答を発話させる
+        # d1 = rt1.say_text(message1)
+        # m1 = rt1.make_beat_motion(d1, speed=1.5)
+        # rt1.play_motion(m1)
+        # プロンプトにロボット１の発話を追加
+        prompt1.append({"role": "assistant", "content": message1})
+        print("ロボット１:", message1)
+        # 発話中は音声認識を止める
+        # time.sleep(d1)
+    elif result1.reason == speechsdk.ResultReason.NoMatch:
+        print("No speech could be recognized: {}".format(result1.no_match_details))
+    elif result1.reason == speechsdk.ResultReason.Canceled:
+        cancellation_details = result1.cancellation_details
+        print("Speech Recognition canceled: {}".format(cancellation_details.reason))
+        if cancellation_details.reason == speechsdk.CancellationReason.Error:
+            print("Error details: {}".format(cancellation_details.error_details))
+
+    # ロボット２の音声認識開始
+    result2 = speech_recognizer.recognize_once()
+
+    # ロボット２の音声認識結果（ユーザの発話）の処理
+    if result2.reason == speechsdk.ResultReason.RecognizedSpeech:
+        print("ロボット２の発話:", result2.text)
+        # プロンプトにユーザの発話を追加
+        prompt2.append({'role': 'user', 'content': result2.text})
+        # ユーザの発話をChatGPTに送信、生成された応答文を取得
+        response2 = openai.chat.completions.create(
+            model=model_engine,
+            messages=prompt2
+        )
+        message2 = response2.choices[0].message.content
+        # ロボット２に返答を発話させる
+        # d2 = rt2.say_text(message2)
+        # m2 = rt2.make_beat_motion(d2, speed=1.5)
+        # rt2.play_motion(m2)
+        # プロンプトにロ
+        
